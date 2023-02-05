@@ -37,15 +37,19 @@ Client -> front end server -> backend API gateway LB -> web servers -> DB
 
 ## DB Design
 
-Original Filing 
+Table Name: Original Filing 
+
 Storage: File systems
+
 Schema:
-file_path: file
+- file_path: file
 
 
 Item Table
+
 Storage: No-SQL
+
 Schema:
-key/sharding key: {filing_name}#{part_number}#{item_number}
-value: html
-value: text
+- key/sharding key: {filing_name}#{part_number}#{item_number}
+- value: html
+- value: text
