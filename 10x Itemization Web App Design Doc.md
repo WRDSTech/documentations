@@ -18,8 +18,11 @@ Storage: 750,000 filings, estimated 750k*20=1.5MM items on file
 ## API
 
 get_file_list() - internal test -> list
+
 get_item(specific item key) -> String
+
 get_filing_items(filing name) -> dict(item_number, item_content)
+
 get_filing_competition(filing name) -> String
 
 
