@@ -16,7 +16,7 @@ similar scale on number of edges
 
 ## API
 
-get_surrouding_by_node(node_id, expand_number_of_layers) -> 
+get_surrouding_by_node(node_id, expand_number_of_layers) -> json
 
 
 ## High Level Design
@@ -30,4 +30,10 @@ Client -> front end server -> backend API gateway LB -> web servers -> DB
 
 ## DB Design
 
+### Graph Files
+DB Choice: 3 Files in Hard Drive
 
+Schema:
+- train2id: (e1, e2, rel)
+- relation2id: (relation name, id)
+- entity2id: (entity, id)
