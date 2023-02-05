@@ -43,14 +43,14 @@ Storage: 750,000 filings, estimated 750k*20=1.5MM items on file
 
 ## High Level Design
 
-**Entry**
+### Entry
 
 Client -> front end server -> backend API gateway LB -> web servers 
 
-**File is in DB**
+### File is in DB
 backend API gateway LB -> web servers -> DB
 
-**File is not in DB**
+### File is not in DB
 backend API gateway LB -> web servers -> computation node -> DB
 
 
