@@ -17,13 +17,28 @@ Storage: 750,000 filings, estimated 750k*20=1.5MM items on file
 
 ## API
 
-get_file_list() - internal test -> list
+### public
 
-get_item(specific item key) -> String
+1. get_item(specific_item_key: str) -> str
 
-get_filing_items(filing name) -> dict(item_number, item_content)
+* GET /api/tenk/item?id=<itemkey>
 
-get_filing_competition(filing name) -> String
+2. get_all_items_from_filing(filing_name: str) -> dict(item_number, item_content)
+
+* GET /api/tenk/items
+* Request body: {filing_name: ???}
+
+
+3. get_competition_from_filing(filing_name: str) -> str
+
+* GET /api/tenk/competition
+* Request body: {filing_name: ???}
+
+### private
+
+4. retrieve_competition_from_item1(item1_content: str) -> str 
+
+5. retrieve_items_from_filing(raw_filing_content: str) -> dict(item_number, item_content)
 
 
 ## High Level Design
