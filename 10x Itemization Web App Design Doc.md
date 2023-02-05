@@ -43,7 +43,15 @@ Storage: 750,000 filings, estimated 750k*20=1.5MM items on file
 
 ## High Level Design
 
-Client -> front end server -> backend API gateway LB -> web servers -> DB
+**Entry**
+
+Client -> front end server -> backend API gateway LB -> web servers 
+
+**File is in DB**
+backend API gateway LB -> web servers -> DB
+
+**File is not in DB**
+backend API gateway LB -> web servers -> computation node -> DB
 
 
 ## OO Design
@@ -52,16 +60,14 @@ Client -> front end server -> backend API gateway LB -> web servers -> DB
 
 ## DB Design
 
-Table Name: Original Filing 
-
-Storage: File systems
+### Original Filing 
+Storage Choice: File systems
 
 Schema:
 - file_path: file
 
 
-Item Table
-
+### Item Table
 Storage: No-SQL
 
 Schema:
