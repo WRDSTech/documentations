@@ -1,6 +1,6 @@
 # Competition Graph Web App Design Doc
 
-## Functional Requirement
+## Features
 
 1. Extract and store competition relatioship from financial reports
 2. Query and display extracted relationship
@@ -34,14 +34,26 @@ GET /competitors/<company_name>
 
 GET /competition-graph?center-node-id={node_id: int}&max-layers={max_expand_layers: int}
 
-
 ## Architecture
-
-
 
 ![1685946694487](image/10xGraphWebAppDesignDoc/1685946694487.png)
 
-## OO Design
+
+## Key UX Design
+
+TODO
+
+
+## Frontend Project Structure
+
+TODO: Describe how modules are organized
+
+
+## Backend Project Structure
+
+TODO: Describe how modules are organized
+
+
 
 ## DB Design
 
