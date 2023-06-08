@@ -38,22 +38,17 @@ GET /competition-graph?center-node-id={node_id: int}&max-layers={max_expand_laye
 
 ![1685946694487](image/10xGraphWebAppDesignDoc/1685946694487.png)
 
-
 ## Key UX Design
 
-TODO
-
+[Check out the UI](./ux_design/competition-graph-hifi-ui.pptx)
 
 ## Frontend Project Structure
 
 TODO: Describe how modules are organized
 
-
 ## Backend Project Structure
 
 TODO: Describe how modules are organized
-
-
 
 ## DB Design
 
