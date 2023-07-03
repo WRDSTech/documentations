@@ -1,14 +1,19 @@
 # Competition Graph Web App Design Doc
 
-## Features
+## Functional Requirement
 
-1. Extract and store competition relatioship from financial reports
-2. Query and display extracted relationship
-   1. support partial visualization of competition relationships:
-      1. Users can choose or search a company and view its competitors
-      2. Users can choose how many nodes or companies to visualize
-3. Categorize different types of competition relationships
-   1. Each type of competition relationship should contain different label
+* Backend Service
+  * The backend service should be able to query and serve relationship data between public companies in the form of graph data.
+    * Company relationship includes competitive and cooperative relationship
+  * The backend service should expose RESTful web APIs for other services
+    * The backend service should support relationship query by company names, tickers, and types of relationships. Typical usecase should include:
+      * Listing companies and their relationships
+      * Listing relationship of a company
+      * Listing companies that have a type of relationship
+* Frontend Service
+  * The frontend service should provide visualization and interaction for users to understand the relationships between public companies.
+    * The frontend service should allow users to search a company by name or ticker and show its relationship with other companies
+    * The frontend service should allow users to specify the layers of relationship expansion. For example, if users only want to expand 2 layers of relationships, then only companies that are at most 2 jumps away from the searched companies will be displayed.
 
 ## Critical User Journey
 
@@ -20,131 +25,151 @@
 
 ## Non-Functional Requirement
 
-1. High availability
-   1. The web app should provide service for 99% of the time
-2. Reasonable response time
-   1. The web app should present data and visualization within 500ms by average
-3. Storage independence
-   1. The web app itself can use different types of storage solutions: Graph DB, Relational DB, other NoSQL databases
+* **Performance:**  The service should be able to handle frequent requests from other services without performance degradation. Key performance metrics include:
 
-## Scale
+  * **Response Time** : The average response time for API requests should be under 200 milliseconds under normal load.
+  * **Throughput** : The service should be able to handle at least 1000 requests per second under peak load.
+* **Scalability** : The service should be scalable to handle increasing data volume and request load. Key scalability metrics include:
 
-Max 100 queries per second (QPS) for retrieving company relationship
+  * **Load Scalability** : The service should maintain its performance characteristics even when the number of simultaneous users or requests doubles.
+  * **Data Scalability** : The service should be able to handle a 10x increase in the number of public companies and relationships without a significant increase in response time.
+* **Availability:**  The service should be highly available to ensure uninterrupted service to users. Key availability metrics include:
 
-Storage: 750,000 filings, estimated 750k*20=1.5MM nodes in graph,
-similar scale on number of edges
+  * **Uptime** : The service should aim for an uptime of 99.99% ("Four Nines"), which allows for approximately 52.56 minutes of downtime per year, not including planned maintenance.
+  * **Failover** : In case of a system failure, the service should be able to automatically failover to a backup system within minutes.
+* **Security** : The service should implement necessary security measures to protect the data and the API. Key security measures include:
+
+  * **Data Encryption** : All data, both at rest and in transit, should be encrypted using industry-standard encryption protocols.
+  * **Access Control** : The API should implement authentication and authorization mechanisms to ensure that only authorized services can access the data.
 
 ## Web API
 
-The design of web API follows the RESTful standard.
+The service will expose a RESTful API with the following endpoints:
 
-GET /competitors/<company_name>
+1. GET `/relationship/<company_name: str>/<relationship_type: 'comp' | 'coop' | 'other' | none>`
+   1. Returns a list of companies by relationship type
+   2. Params:
+      1. `company_name: str`,
+      2. `relationship_type: 'comp' | 'coop'`,
+         1. `'comp'`: competition
+         2. `'coop'`: cooperation
+         3. `'other'`: other relationships
+         4. `none`: returns both relationships
+   3. Returns
+      1. graph
+         1. `nodes: List[{ id: int, name: str }]`
+         2. `links: List[{ id: int, category: 'competition' | 'cooperation' | 'other', source: int, target: int }]`
+2. GET `/relationship/graph?center-node-id={node_id: int}&max-layers={max_expand_layers: int}&category={'comp' | 'coop' | 'other' | 'none'}`
+   1. Returns an overview of the relationship graph given the center node and the number of layers to expand
+   2. Params
+      1. `center-node-id: int` which node should be at the center of the graph
+      2. `max-layers: int` max number of layers to expand
+      3. `category: 'comp' | 'coop' | 'other' | 'none'`
+   3. Returns
+      1. graph
+         1. `nodes: List[{ id: int, name: str }]`
+         2. `links: List[{ id: int, category: 'competition' | 'cooperation' | 'other', source: int, target: int }]`
 
-GET /competition-graph?center-node-id={node_id: int}&max-layers={max_expand_layers: int}
+![1687008056491](image/10xGraphWebAppDesignDoc/1687008056491.png)
 
 ## Architecture
 
 <p style="text-align:center"><img src="image/10xGraphWebAppDesignDoc/1685946694487.png"></p>
 
-## Key UX Design
+## Critical User Journey
 
-[Check out the UI](./ux_design/competition-graph-hifi-ui.pptx)
+1. **Discovery and Onboarding** : A user discovers the company relationship query service. They are greeted with a short description of the project and instructions on how to use the service on the first page of the frontend.
+2. **First Use** : The user clicks on the 'try it out' button to experience the service. They are presented with a form where they can enter the name or stock ticker of the company they want to view. They can also select the category of relationship and the number of layers to expand.
+3. **Visualization** : Upon successful submission of the form, the frontend redirects to a graph visualizer. The visualizer displays the relationships of the company in a graph format. Users can interact with the graph by selecting, clicking, expanding, or collapsing nodes and relationships. They can also drag the graph for better viewing.
+4. **Interaction** : When a user clicks on a node in a collapsed state, the frontend attempts to expand its relationship. This triggers a web request to the backend.
+5. **Update** : If the request to the backend is successful, the frontend updates the graph to display the expanded relationship. The user can continue to interact with the graph and explore the relationships.
 
-## Frontend Project Structure
+![1687008840937](image/10xGraphWebAppDesignDoc/1687008840937.png)
 
-```
-src
-|____api
-| |____company-graph.js
-| |____form-itemization.js
-|____App.vue
-|____assets
-| |____data
-| | |____catelog.txt
-| | |____companies.json
-| | |____data.json
-| | |____dow30_relation_backend.json
-| | |____sample.json
-| | |____samples_for_front_end.zip
-| | |____sample_data
-| | | |____AAPL.json
-| | | |____AXP.json
-| | | |____MSFT.json
-| | | |____UNH.json
-| | | |____VZ.json
-| | | |____WMT.json
-| | |____sp500_relation_backend.json
-| |____Document.html
-| |____Document_files
-| |____hl_finance.jpg
-| |____logo.png
-| |____styles
-| | |____bootstrap.min.css
-| | |____grid-framework.less
-| |____wharton_white.svg
-| |____wrds_logo.svg
-|____components
-| |____CompanyGraph.vue
-| |____ItemizationForm.vue
-| |____layouts
-| | |____Breadcrumb.vue
-| | |____Footer.vue
-| | |____Header.vue
-| |____PaperAbstract.vue
-| |____Reader.vue
-|____main.js
-|____router
-| |____index.js
-|____views
-| |____CompanyRelations.vue
-| |____FormReader.vue
-| |____Home.vue
-| |____SampleForm.vue
-```
+## UI Design
 
-## Backend Project Structure
+(For reference only. May not represent the final product.)
 
-```
-.
-|____app.py
-|____blueprints
-| |____comp_graph_bp.py
-| |____container.py
-| |______init__.py
-|____container.py
-|____data
-| |____dow30_relation.json
-| |____entity2id.txt
-| |____relation2id.txt
-| |____sp500_relation.json
-| |____train2id.txt
-|____entities
-| |____graph_dto.py
-| |____graph_entities.py
-| |______init__.py
-|____factory.py
-|____repository
-| |____comp_graph_repository.py
-| |____comp_graph_repository_impl.py
-| |____container.py
-| |______init__.py
-|____services
-| |____comp_graph_service.py
-| |____comp_graph_service_impl.py
-| |____container.py
-| |______init__.py
-|____utils.py
-|______init__.py
-```
+![1687009025863](image/10xGraphWebAppDesignDoc/1687009025863.png)
+
+![1687009043423](image/10xGraphWebAppDesignDoc/1687009043423.png)
+
+![1687009367835](image/10xGraphWebAppDesignDoc/1687009367835.png)
+
+## Architectural Design
+
+The service will adopt a microservices architecture, with distinct backend and frontend services. Both services will be designed with a focus on high availability and fault tolerance.
+
+### Backend Architectural Design
+
+![1687010882726](image/10xGraphWebAppDesignDoc/1687010882726.png)
+
+The backend service will be developed using a graph database(Neo4j) and Python. It will be designed as a distributed system and deployed using container services for high availability and scalability.
+
+#### Distributed System
+
+The backend service will be designed as a distributed system with multiple instances running in parallel. This design allows the service to handle a large number of requests and ensures high availability.
+
+#### Container Services
+
+The backend service will be deployed using Docker, and orchestrated using Kubernetes (k8s). This allows for easy deployment, scaling, and management of the service.
+
+1. **Containerization** : Each microservice will be packaged into a docker container. This includes all the dependencies needed by the microservice, ensuring consistency across all environments.
+2. **Orchestration** : The containers will be managed and orchestrated using Kubernetes. Kubernetes provides features like automatic scaling, rolling updates, and self-healing (restarting containers that fail), which are crucial for high availability and scalability.
+
+#### Database Clustering
+
+The graph database will be set up as a cluster with multiple replicas. This ensures that even if one database instance goes down, the others can continue to serve data.
+
+1. **Replication** : The database will be replicated across multiple instances. This ensures high availability as even if one instance goes down, the others can continue to serve data. There will be one core instance and two read replica.
+
+### Monitoring and Alerting
+
+To ensure the high availability of the service, a robust monitoring and alerting system will be implemented. This system will continuously monitor the health of the servers and the database, and send alerts in case of any issues. This allows for quick detection and resolution of any problems, minimizing downtime.
 
 ## DB Design
 
-### Graph Files
+**DB Choice: Neo4j**
 
-DB Choice: 3 Files in Hard Drive
+![1687012356974](image/10xGraphWebAppDesignDoc/1687012356974.png)
 
-Schema:
+**Nodes:**
 
-- train2id: (e1, e2, rel)
-- relation2id: (relation name, id)
-- entity2id: (entity, id)
+1. **Company** : This node represents a company. It could have properties like:
+
+* `name`: The name of the company.
+* `ticker`: The stock ticker symbol of the company.
+* `industry`: The industry the company operates in.
+
+**Relationships:**
+
+1. **COMPETES_WITH** : This relationship represents a competitive relationship between two companies. It could have properties like:
+
+* `intensity`: A measure of how intense the competition is.
+* `market`: The market in which the companies compete.
+
+1. **HAS_PARTNERSHIP_WITH** : This relationship represents a partnership between two companies. It could have properties like:
+
+* `duration`: The duration of the partnership.
+* `type`: The type of partnership (e.g., joint venture, strategic alliance).
+
+1. **HAS_SUBSIDIARY** : This relationship represents a parent-subsidiary relationship between two companies. It could have properties like:
+
+* `ownership_percentage`: The percentage of the subsidiary owned by the parent company.
+
+
+### Key Assumptions and Trade-offs
+
+#### **Key Assumptions:**
+
+1. **Data Availability** : The system assumes that the data about companies and their relationships is available and can be obtained in a structured format that can be imported into Neo4j.
+2. **Data Quality** : The system assumes that the data is accurate and up-to-date. If the data is not reliable, the results provided by the system will also be unreliable.
+3. **User Load** : The system assumes that the load will be manageable with the proposed architecture. If the number of users or the rate of requests is significantly higher than expected, the system might need to be scaled up or out.
+4. **User Behavior** : The system assumes that users will interact with the system in certain ways (e.g., by querying for specific companies, by exploring the graph visualization). If users interact with the system in unexpected ways, it might affect the performance or usability of the system.
+
+#### **Key Trade-offs:**
+
+1. **Complexity vs. Performance** : Using a graph database like Neo4j allows for efficient querying of complex relationships, but it also adds complexity to the system compared to a more traditional relational database.
+2. **Real-time vs. Batch Processing** : Depending on the data source, you might need to choose between processing updates in real-time or in batches. Real-time processing allows for more up-to-date data but can be more resource-intensive.
+3. **Scalability vs. Consistency** : In a distributed system, there is often a trade-off between scalability and consistency. For example, adding more replicas can increase read scalability but can also lead to consistency issues.
+4. **Cost vs. Performance** : Higher performance often comes with higher costs, both in terms of the resources needed (e.g., more powerful servers, more storage) and the complexity of the system (e.g., implementing caching, load balancing, replication).
