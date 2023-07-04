@@ -29,7 +29,8 @@
 * **Performance:**  The service should be able to handle frequent requests from other services without performance degradation. Key performance metrics include:
 
   * **Response Time** : The average response time for API requests should be under 200 milliseconds under normal load.
-  * **Throughput** : The service should be able to handle at least 1000 requests per second under peak load.
+  * **Throughput** : The service should be able to handle at least 10k requests per second under peak load.
+  * **Special Requirement:** The service should be able to handle a sudden surge of large concurrent requests, and should not fail to response for 99.99% of the time.
 * **Scalability** : The service should be scalable to handle increasing data volume and request load. Key scalability metrics include:
 
   * **Load Scalability** : The service should maintain its performance characteristics even when the number of simultaneous users or requests doubles.
@@ -59,6 +60,112 @@ The service will expose a RESTful API with the following endpoints:
          2. `links: List[{ id: int, category: 'competition' | 'product' | 'unknown', source: int, target: int }]`
 
 ![1687008056491](image/10xGraphWebAppDesignDoc/1687008056491.png)
+
+
+The service will also provide an asynchronous RPC API based on RabbitMQ. ([External Resource: How to make a RPC call in RabbitMQ](https://www.rabbitmq.com/tutorials/tutorial-six-python.html).)
+
+From a high level perspective, the serivce will expose a queue called "company_relation". Client services will send a request to this queue with the same parameter format of the RESTful API. Then service will return the address to the callback queue. The client receives the callback queue and consume data from the queue.
+
+
+Here is the example from the offical RabbitMQ website.
+
+Server Code
+
+```python
+import pika
+
+connection = pika.BlockingConnection(
+    pika.ConnectionParameters(host='localhost'))
+
+channel = connection.channel()
+
+channel.queue_declare(queue='rpc_queue')
+
+def fib(n):
+    if n == 0:
+        return 0
+    elif n == 1:
+        return 1
+    else:
+        return fib(n - 1) + fib(n - 2)
+
+def on_request(ch, method, props, body):
+    n = int(body)
+
+    print(" [.] fib(%s)" % n)
+    response = fib(n)
+
+    ch.basic_publish(exchange='',
+                     routing_key=props.reply_to,
+                     properties=pika.BasicProperties(correlation_id = \
+                                                         props.correlation_id),
+                     body=str(response))
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+channel.basic_qos(prefetch_count=1)
+channel.basic_consume(queue='rpc_queue', on_message_callback=on_request)
+
+print(" [x] Awaiting RPC requests")
+channel.start_consuming()
+```
+
+Change the queue name in ``queue_declare`` to ``company_relationship``
+
+``fib`` is the method of processing our business logic. Change it to our relationship query method.
+
+Client Code
+
+```Python
+import pika
+import uuid
+
+
+class FibonacciRpcClient(object):
+
+    def __init__(self):
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host='localhost'))
+
+        self.channel = self.connection.channel()
+
+        result = self.channel.queue_declare(queue='', exclusive=True)
+        self.callback_queue = result.method.queue
+
+        self.channel.basic_consume(
+            queue=self.callback_queue,
+            on_message_callback=self.on_response,
+            auto_ack=True)
+
+        self.response = None
+        self.corr_id = None
+
+    def on_response(self, ch, method, props, body):
+        if self.corr_id == props.correlation_id:
+            self.response = body
+
+    def call(self, n):
+        self.response = None
+        self.corr_id = str(uuid.uuid4())
+        self.channel.basic_publish(
+            exchange='',
+            routing_key='rpc_queue',
+            properties=pika.BasicProperties(
+                reply_to=self.callback_queue,
+                correlation_id=self.corr_id,
+            ),
+            body=str(n))
+        self.connection.process_data_events(time_limit=None)
+        return int(self.response)
+
+
+fibonacci_rpc = FibonacciRpcClient()
+
+print(" [x] Requesting fib(30)")
+response = fibonacci_rpc.call(30)
+print(" [.] Got %r" % response)
+```
+
+Change ``on_response`` to data processing and consumption logic.
 
 ## Architecture
 
