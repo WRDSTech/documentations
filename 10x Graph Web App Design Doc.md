@@ -61,111 +61,25 @@ The service will expose a RESTful API with the following endpoints:
 
 ![1687008056491](image/10xGraphWebAppDesignDoc/1687008056491.png)
 
+The service will also provide an bidirectional websocket API.
 
-The service will also provide an asynchronous RPC API based on RabbitMQ. ([External Resource: How to make a RPC call in RabbitMQ](https://www.rabbitmq.com/tutorials/tutorial-six-python.html).)
+If you are not familiar with websocket, here are some resources:
 
-From a high level perspective, the serivce will expose a queue called "company_relation". Client services will send a request to this queue with the same parameter format of the RESTful API. Then service will return the address to the callback queue. The client receives the callback queue and consume data from the queue.
+1. [MDN Websocket Documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications)
+2. [FastAPI Websocket Server](https://fastapi.tiangolo.com/zh/advanced/websockets/)
+3. [Python Websocket Library](https://websockets.readthedocs.io/en/stable/)
 
+API: /ws/company-relation
 
-Here is the example from the offical RabbitMQ website.
+Body:
 
-Server Code
+`{'company_name': None|str, 'relationship_type': 'comp' | 'prod' | 'unknown' | none }`
 
-```python
-import pika
+Returns
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
-
-channel = connection.channel()
-
-channel.queue_declare(queue='rpc_queue')
-
-def fib(n):
-    if n == 0:
-        return 0
-    elif n == 1:
-        return 1
-    else:
-        return fib(n - 1) + fib(n - 2)
-
-def on_request(ch, method, props, body):
-    n = int(body)
-
-    print(" [.] fib(%s)" % n)
-    response = fib(n)
-
-    ch.basic_publish(exchange='',
-                     routing_key=props.reply_to,
-                     properties=pika.BasicProperties(correlation_id = \
-                                                         props.correlation_id),
-                     body=str(response))
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='rpc_queue', on_message_callback=on_request)
-
-print(" [x] Awaiting RPC requests")
-channel.start_consuming()
-```
-
-Change the queue name in ``queue_declare`` to ``company_relationship``
-
-``fib`` is the method of processing our business logic. Change it to our relationship query method.
-
-Client Code
-
-```Python
-import pika
-import uuid
-
-
-class FibonacciRpcClient(object):
-
-    def __init__(self):
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host='localhost'))
-
-        self.channel = self.connection.channel()
-
-        result = self.channel.queue_declare(queue='', exclusive=True)
-        self.callback_queue = result.method.queue
-
-        self.channel.basic_consume(
-            queue=self.callback_queue,
-            on_message_callback=self.on_response,
-            auto_ack=True)
-
-        self.response = None
-        self.corr_id = None
-
-    def on_response(self, ch, method, props, body):
-        if self.corr_id == props.correlation_id:
-            self.response = body
-
-    def call(self, n):
-        self.response = None
-        self.corr_id = str(uuid.uuid4())
-        self.channel.basic_publish(
-            exchange='',
-            routing_key='rpc_queue',
-            properties=pika.BasicProperties(
-                reply_to=self.callback_queue,
-                correlation_id=self.corr_id,
-            ),
-            body=str(n))
-        self.connection.process_data_events(time_limit=None)
-        return int(self.response)
-
-
-fibonacci_rpc = FibonacciRpcClient()
-
-print(" [x] Requesting fib(30)")
-response = fibonacci_rpc.call(30)
-print(" [.] Got %r" % response)
-```
-
-Change ``on_response`` to data processing and consumption logic.
+1. graph
+2. `nodes: List[{ id: int, name: str }]`
+3. `links: List[{ id: int, category: 'competition' | 'product' | 'unknown', source: int, target: int }]`
 
 ## Architecture
 
@@ -226,31 +140,50 @@ To ensure the high availability of the service, a robust monitoring and alerting
 
 **DB Choice: Neo4j**
 
-![1687012356974](image/10xGraphWebAppDesignDoc/1687012356974.png)
+![1688548724003](image/10xGraphWebAppDesignDoc/1688548724003.png)
 
 **Nodes:**
 
-1. **Company** : This node represents a company. It could have properties like:
+1. **Company** : This node represents a company. Properties:
 
 * `name`: The name of the company.
 * `ticker`: The stock ticker symbol of the company.
 * `industry`: The industry the company operates in.
 
+2. Product: Represents the product of a company. Properties:
+
+* `name`: The name of the product
+
+3. Item: Other unknown item
+
+* `name`: The name of the item
+
 **Relationships:**
 
-1. **COMPETES_WITH** : This relationship represents a competitive relationship between two companies. It could have properties like:
+1. **COMPETES_WITH** : This relationship represents a competitive relationship between two companies.
+2. **PRODUCT_OF** : This relationship represents the item
+3. **Unknown** : This relationship represents all other unknown relationships.
 
-* `intensity`: A measure of how intense the competition is.
-* `market`: The market in which the companies compete.
+##### Index Design
 
-1. **HAS_PARTNERSHIP_WITH** : This relationship represents a partnership between two companies. It could have properties like:
+**Company Nodes** : You might frequently query for companies based on their `name` or `ticker` properties
 
-* `duration`: The duration of the partnership.
-* `type`: The type of partnership (e.g., joint venture, strategic alliance).
+```sql
+CREATE INDEX FOR (c:Company) ON (c.name)
+CREATE INDEX FOR (c:Company) ON (c.ticker)
+```
 
-1. **HAS_SUBSIDIARY** : This relationship represents a parent-subsidiary relationship between two companies. It could have properties like:
+**Product Nodes** :
 
-* `ownership_percentage`: The percentage of the subsidiary owned by the parent company.
+```SQL
+CREATE INDEX FOR (p:Product) ON (p.name)
+```
+
+**Item Nodes:**
+
+```sql
+CREATE INDEX FOR (i:Item) ON (i.name)
+```
 
 ### Key Assumptions and Trade-offs
 
@@ -258,7 +191,7 @@ To ensure the high availability of the service, a robust monitoring and alerting
 
 1. **Data Availability** : The system assumes that the data about companies and their relationships is available and can be obtained in a structured format that can be imported into Neo4j.
 2. **Data Quality** : The system assumes that the data is accurate and up-to-date. If the data is not reliable, the results provided by the system will also be unreliable.
-3. **User Load** : The system assumes that the load will be manageable with the proposed architecture. If the number of users or the rate of requests is significantly higher than expected, the system might need to be scaled up or out.
+3. **User Load** : The system assumes that the load will be manageable with the proposed architecture. If the number of users or the rate of requests is significantly higher than expected, the system might need to be scaled up or ou
 4. **User Behavior** : The system assumes that users will interact with the system in certain ways (e.g., by querying for specific companies, by exploring the graph visualization). If users interact with the system in unexpected ways, it might affect the performance or usability of the system.
 
 #### **Key Trade-offs:**
