@@ -113,6 +113,11 @@ Returns
 
 The service will adopt a microservices architecture, with distinct backend and frontend services. Both services will be designed with a focus on high availability and fault tolerance.
 
+### Load Balancing
+
+By default we use Nginx for load balancing. If the system is deployed via K8s, K8s' load balancer will be used instead of Nginx.
+
+
 ### Backend Architectural Design
 
 ![1687010882726](image/10xGraphWebAppDesignDoc/1687010882726.png)
