@@ -104,7 +104,6 @@ The service will adopt a microservices architecture, with distinct backend and f
 
 By default we use Nginx for load balancing. If the system is deployed via K8s, K8s' load balancer will be used instead of Nginx.
 
-
 ### Backend Architectural Design
 
 ![1687010882726](image/10xGraphWebAppDesignDoc/1687010882726.png)
@@ -210,3 +209,21 @@ CREATE INDEX FOR (i:Item) ON (i.name)
    1. In our case, we decide to use a few replicas of graphical db to spread the load, as the downstream service may send a stream of requests and pull a lot of data. Deploying replicas not only reduce the load but also decrease the probability of failed requests.
    2. On the other hand, we should not too far on this path of deploying a lot of distributed nodes. It may introduce unnecessary costs and complexity to our system.
 3. **Cost vs. Performance** : Higher performance often comes with higher costs, both in terms of the resources needed (e.g., more powerful servers, more storage) and the complexity of the system (e.g., implementing caching, load balancing, replication).
+
+
+## Implementation Story
+
+
+**Initiation** : The project was conceived with the objective of developing a service to facilitate the querying and visualization of relationships between public companies. The team embarked on a comprehensive study of the requirements and initiated the planning process.
+
+**Design Phase** : The decision to utilize Neo4j as the primary database was made in light of its superior capabilities for handling graph data. The requirement for a high-availability, low-latency system necessitated the design of a distributed architecture. This architecture incorporated multiple instances of the backend service and Neo4j, complemented by Redis for caching and Nginx for load balancing.
+
+**Development Phase** : The development phase was characterized by rigorous coding activity. The team implemented the database schema in Neo4j, developed the backend service using Python, and designed a frontend interface for visualizing company relationships. The complexity of graph queries in Neo4j presented a significant challenge, which was overcome through meticulous query design and effective utilization of Neo4j's features.
+
+**Testing Phase** : A comprehensive testing strategy was implemented, encompassing unit tests, integration tests, and load tests. Performance bottlenecks identified during load testing were addressed through query optimization and enhanced caching.
+
+**Deployment Phase** : The deployment phase marked a significant milestone in the project. The production environment was configured with multiple instances of the backend service, Neo4j, and Redis, all managed by Kubernetes. Nginx was employed as a load balancer to ensure equitable distribution of requests across backend instances.
+
+**Post-Deployment** : Subsequent to deployment, a monitoring system was established using Prometheus and Grafana to track the system's performance and availability. A procedure for handling user feedback and system updates was also instituted. The system has demonstrated consistent performance and has been well-received by users.
+
+> **Reflection** : In retrospect, the project has been a successful endeavor, resulting in the creation of a robust, high-performance system that effectively meets user requirements. The experience has provided valuable insights into working with graph databases, designing distributed systems, and managing high-availability deployments. The team looks forward to further improving the system and tackling new challenges in the future.
