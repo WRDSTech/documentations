@@ -15,6 +15,7 @@
   * The frontend service should provide visualization and interaction for users to understand the relationships between public companies.
     * The frontend service should allow users to search a company by name or ticker and show its relationship with other companies
     * The frontend service should allow users to specify the layers of relationship expansion. For example, if users only want to expand 2 layers of relationships, then only companies that are at most 2 jumps away from the searched companies will be displayed.
+    * The frontend should also provide an overview given the market (either dow30 or sp500)
 
 ## Critical User Journey
 
@@ -46,7 +47,7 @@
 
 The service will expose a RESTful API with the following endpoints:
 
-1. GET `/relationship/<company_name: str>/<relationship_type: 'comp' | 'prod' | 'unknown' | none>`
+1. GET `/relationship/<relationship_type: 'comp' | 'prod' | 'unknown' | none>?cik=<cik: str>&ticker=<ticker: str>&company=<company: str>`
    1. Returns a list of companies by relationship type
    2. Params:
       1. `company_name: str`,
@@ -59,6 +60,9 @@ The service will expose a RESTful API with the following endpoints:
       1. graph
          1. `nodes: List[{ id: int, name: str }]`
          2. `links: List[{ id: int, category: 'competition' | 'product' | 'unknown', source: int, target: int }]`
+2. GET /relationship/overview/`<market: 'dow30' | 'sp500'>`
+   1. Returns an overview of all companies in the market (dow30, sp500)
+3. GET
 
 ![1687008056491](image/10xGraphWebAppDesignDoc/1687008056491.png)
 
@@ -96,11 +100,16 @@ Returns
 
 The service will adopt a microservices architecture, with distinct backend and frontend services. Both services will be designed with a focus on high availability and fault tolerance.
 
+### Load Balancing
+
+By default we use Nginx for load balancing. If the system is deployed via K8s, K8s' load balancer will be used instead of Nginx.
+
+
 ### Backend Architectural Design
 
 ![1687010882726](image/10xGraphWebAppDesignDoc/1687010882726.png)
 
-The backend service will be developed using a graph database(Neo4j) and Python. It will be designed as a distributed system and deployed using container services for high availability and scalability. **To optimize query performance, we can optionally deploy a redis service to cache frequent queries.** The key could be the request parameters like "company_name={name}&rel={comp|prod|unknown|none}", and the value is the data returned by the backend.
+The backend service will be developed using a graph database(Neo4j) and Python. It will be designed as a distributed system and deployed using container services for high availability and scalability. **To optimize query performance, we can optionally deploy a redis service to cache frequent queries.** Frequent quries will be sent to redis instead of hitting the database. The key could be the request parameters like "company_name={name}&rel={comp|prod|unknown|none}", and the value is the data returned by the backend.
 
 #### Distributed System
 
@@ -196,5 +205,8 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 #### **Key Trade-offs**
 
 1. **Complexity vs. Performance** : Using a graph database like Neo4j allows for efficient querying of complex relationships, but it also adds complexity to the system compared to a more traditional relational database.
+   1. Why choosing a graph database? This system is primarily deal with graph and relational data, so using a specialized graph database can represent, query, and store the data more expressively. On the other hand, if we are storing and querying graph data in a relational database, we may need a lot of joins to query long range relationship. Also, the schema may include self referential structure, which is also hard to design in a relationship database.
 2. **Scalability vs. Consistency** : In a distributed system, there is often a trade-off between scalability and consistency. For example, adding more replicas can increase read scalability but can also lead to consistency issues.
+   1. In our case, we decide to use a few replicas of graphical db to spread the load, as the downstream service may send a stream of requests and pull a lot of data. Deploying replicas not only reduce the load but also decrease the probability of failed requests.
+   2. On the other hand, we should not too far on this path of deploying a lot of distributed nodes. It may introduce unnecessary costs and complexity to our system.
 3. **Cost vs. Performance** : Higher performance often comes with higher costs, both in terms of the resources needed (e.g., more powerful servers, more storage) and the complexity of the system (e.g., implementing caching, load balancing, replication).
