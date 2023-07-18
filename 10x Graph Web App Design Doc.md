@@ -19,8 +19,9 @@
 ## Critical User Journey
 
 1. Firstly, users will see the abstract of the Competition Graph Paper to get an idea of how the competition graph is extracted. Then user can click on the "Try it out" button to try this app
-2. Users will fill a form instructing the system which company they want to view. Some recommended tickers are provided, e.g. MSFT, AMZN, AAPL, etc. Users will also tell the system how many layers of relationship to expand, and the number of nodes to view. Then users click on the submit button to view the graph. The frontend will submit users' requests to the backend. If the company ticker entered is found, the backend will return the graph data, and page will be redirected to the graph visualizer. Otherwise, the backend will report an error indicating that the company is not found.. The frontend will display the error message.
-3. In the graph visualizer, users can click, select and drag the graph. Users can also zoom in or zoom out. If the clicked node is a company, the frontend will send a request to fetch nodes connected to that company. If successful, the graph node will expand to display the competitors of that company. Otherwise, the frontend does nothing. If the node is already expanded, then all nodes connecting to that node will collapse and become hidden.
+2. Users will fill a form instructing the system which company they want to view. Some recommended tickers are provided, e.g. MSFT, AMZN, AAPL, etc. Users will also tell the system how many layers of relationship to expand, and the number of nodes to view. Then users click on the submit button to view the graph. The frontend will submit users' requests to the backend. If the company ticker entered is found, the backend will return the graph data, and page will be switched to the graph visualizer page, which is a part of the website. Otherwise, the backend will report an error indicating that the company is not found.. The frontend will display the error message.
+3. In the graph visualizer，which is the main page of user interaction, users can click, select and drag the graph. Users can also zoom in or zoom out. If the clicked node is a company, the frontend will send a request to fetch nodes connected to that company. If successful, the graph node will expand to display the competitors of that company. Otherwise, the frontend does nothing. If the node is already expanded, then all nodes connecting to that node will collapse and become hidden.
+4. User cannot select the type of relationship to expand.
 
 <p style="text-align:center"><img src="image/10xGraphWebAppDesignDoc/1686807119816.png"></p>
 
@@ -39,7 +40,7 @@
 
   * **Uptime** : The service should aim for an uptime of 99.99% ("Four Nines"), which allows for approximately 52.56 minutes of downtime per year, not including planned maintenance.
   * **Failover** : In case of a system failure, the service should be able to automatically failover to a backup system within minutes.
-* **Security(not included in the scope of this document, require a common security service)**
+* **Security (not included in the scope of this document, require a common security service)**
 
 ## Web API
 
@@ -49,9 +50,9 @@ The service will expose a RESTful API with the following endpoints:
    1. Returns a list of companies by relationship type
    2. Params:
       1. `company_name: str`,
-      2. `relationship_type: 'comp' | 'coop'`,
+      2. `relationship_type: 'comp' | 'product' | 'unknown'`,
          1. `'comp'`: competition
-         2. `'product'`: cooperation
+         2. `'product'`: represents products of a company
          3. `'unknown'`: other relationships
          4. `none`: returns all relationships
    3. Returns
@@ -61,7 +62,7 @@ The service will expose a RESTful API with the following endpoints:
 
 ![1687008056491](image/10xGraphWebAppDesignDoc/1687008056491.png)
 
-The service will also provide an bidirectional websocket API.
+The service will also provide an bidirectional websocket API. This api is primarily consumed by other services like AI training services. The frontend will not interact with this api.
 
 If you are not familiar with websocket, here are some resources:
 
@@ -80,20 +81,6 @@ Returns
 1. graph
 2. `nodes: List[{ id: int, name: str }]`
 3. `links: List[{ id: int, category: 'competition' | 'product' | 'unknown', source: int, target: int }]`
-
-## Architecture
-
-<p style="text-align:center"><img src="image/10xGraphWebAppDesignDoc/1685946694487.png"></p>
-
-## Critical User Journey
-
-1. **Discovery and Onboarding** : A user discovers the company relationship query service. They are greeted with a short description of the project and instructions on how to use the service on the first page of the frontend.
-2. **First Use** : The user clicks on the 'try it out' button to experience the service. They are presented with a form where they can enter the name or stock ticker of the company they want to view. They can also select the category of relationship and the number of layers to expand.
-3. **Visualization** : Upon successful submission of the form, the frontend renders a graph visualizer. The visualizer displays the relationships of the company in a graph format. Users can interact with the graph by selecting, clicking, expanding, or collapsing nodes and relationships. They can also drag the graph for better viewing.
-4. **Interaction** : When a user clicks on a node in a collapsed state, the frontend attempts to expand its relationship. This triggers a web request to the backend.
-5. **Update** : If the request to the backend is successful, the frontend updates the graph to display the expanded relationship. The user can continue to interact with the graph and explore the relationships.
-
-![1687008840937](image/10xGraphWebAppDesignDoc/1687008840937.png)
 
 ## UI Design
 
@@ -135,6 +122,18 @@ Initially, the database could be deployed as a single node for the sake of simpl
 ### Monitoring and Alerting
 
 To ensure the high availability of the service, a robust monitoring and alerting system will be implemented. This system will continuously monitor the health of the servers and the database, and send alerts in case of any issues. This allows for quick detection and resolution of any problems, minimizing downtime.
+
+### Cache Key Design
+
+Redis is used as the caching system between the backend and its consumers.
+
+Data will be cached to redis on the first update, and get refreshed after 5 minutes.
+
+The key design is as follows:
+
+``"company_name:{company_name: str, None}&relationship_type:{all, comp, prod, unknown}"``
+
+Each query will be cached. If the key hits the cache, the cached data will be returned in favor of the data from the database.
 
 ## DB Design
 
@@ -194,7 +193,7 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 3. **User Load** : The system assumes that the load will be manageable with the proposed architecture. If the number of users or the rate of requests is significantly higher than expected, the system might need to be scaled up or ou
 4. **User Behavior** : The system assumes that users will interact with the system in certain ways (e.g., by querying for specific companies, by exploring the graph visualization). If users interact with the system in unexpected ways, it might affect the performance or usability of the system.
 
-#### **Key Trade-offs:**
+#### **Key Trade-offs**
 
 1. **Complexity vs. Performance** : Using a graph database like Neo4j allows for efficient querying of complex relationships, but it also adds complexity to the system compared to a more traditional relational database.
 2. **Scalability vs. Consistency** : In a distributed system, there is often a trade-off between scalability and consistency. For example, adding more replicas can increase read scalability but can also lead to consistency issues.
