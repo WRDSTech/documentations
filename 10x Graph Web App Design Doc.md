@@ -143,6 +143,37 @@ The key design is as follows:
 
 Each query will be cached. If the key hits the cache, the cached data will be returned in favor of the data from the database.
 
+Since other client services asynchronously pulls data from the graph service, redis will be used as  both a message queue and a cache system to coordinate communication between backend services. Thus, client services will use redis's Pub/Sub command to pull data.
+
+The graph service will subscribe a channel called `relationship_query` . To request data, services can send command via this channel.
+
+```
+SUBSCRIBE relationship_query
+```
+
+The query command is the same as the format of cache key.
+
+``"company_name:{company_name: str, None}&relationship_type:{all, comp, prod, unknown}"``
+
+To query data, send command in the following format.
+
+```
+Publish relationship_query {'query': {'company_name': str, None, 'relationship_type': all, comp, prod, unknown}}}
+```
+
+The graph service will publish a channel called `company_relationship`. It will publish data like the following:
+
+```
+PUBLISH company_relationship {'graph': {nodes:[{ id: int, name: str }], links: [{ id: int, category: 'competition' | 'product' | 'unknown', source: int, target: int }]}}}}
+```
+
+Client services will subscribe to `company_relationship` channel to receive the data.
+
+```
+SUBSCRIBE relationship_query
+```
+
+
 ## DB Design
 
 **DB Choice: Neo4j**
@@ -210,20 +241,90 @@ CREATE INDEX FOR (i:Item) ON (i.name)
    2. On the other hand, we should not too far on this path of deploying a lot of distributed nodes. It may introduce unnecessary costs and complexity to our system.
 3. **Cost vs. Performance** : Higher performance often comes with higher costs, both in terms of the resources needed (e.g., more powerful servers, more storage) and the complexity of the system (e.g., implementing caching, load balancing, replication).
 
-
 ## Implementation Story
-
 
 **Initiation** : The project was conceived with the objective of developing a service to facilitate the querying and visualization of relationships between public companies. The team embarked on a comprehensive study of the requirements and initiated the planning process.
 
+* [X] Team building
+* [X] Requirement Research
+
+  * [X] Functional requirement
+  * [X] Non-functional requirement
+* [X] Project Feasibility Study
+
 **Design Phase** : The decision to utilize Neo4j as the primary database was made in light of its superior capabilities for handling graph data. The requirement for a high-availability, low-latency system necessitated the design of a distributed architecture. This architecture incorporated multiple instances of the backend service and Neo4j, complemented by Redis for caching and Nginx for load balancing.
+
+* [X] Design Documentation Drafting
+* [X] Architecture Design
+  * [X] Architecture selection
+  * [X] Database selection
+  * [X] Cache system selection
+* [X] Frontend Design
+* [X] Backend Design
 
 **Development Phase** : The development phase was characterized by rigorous coding activity. The team implemented the database schema in Neo4j, developed the backend service using Python, and designed a frontend interface for visualizing company relationships. The complexity of graph queries in Neo4j presented a significant challenge, which was overcome through meticulous query design and effective utilization of Neo4j's features.
 
+* [ ] Frontend Development
+  * [ ] Interaction Enhancement
+    * [X] Support company relationship query
+    * [X] Support SP500 & DOW30 global chart
+    * [X] Support node expansion
+    * [ ] Support relationship filtering (choose to expand nodes based on relationship type)
+* [ ] Backend Development
+  * [X] Basic RESTful graph API loaded from json file
+    * [X] Supports SP500 & DOW30 global chart
+    * [X] Support node expansion given company and relationship type
+    * [X] Support node expansion by number of nodes and number of layers
+  * [ ] Websocket based API
+  * [ ] Redis MQ based API
+* [ ] Data preparation and migration
+  * [ ] Neo4j Graph schema building
+  * [ ] Data migration
+
 **Testing Phase** : A comprehensive testing strategy was implemented, encompassing unit tests, integration tests, and load tests. Performance bottlenecks identified during load testing were addressed through query optimization and enhanced caching.
+
+* [ ] Test case development
+* [ ] Unit testing
+  * [ ] Graph model layer tests
+    * [ ] Basic data read/write
+    * [ ] Data validation (Do the model correctly validate data)
+    * [ ] Model layer operations test (do methods in the model work properly?)
+  * [ ] Infrastructure layer tests
+    * [ ] Data loading (no writing in our use cases for now)
+    * [ ] Redis caching test
+    * [ ] Redis MQ test
+  * [ ] Service layer tests
+    * [ ] Does the service layer correctly implements use cases?
+  * [ ] API layer tests
+    * [ ] RESTful API test
+      * [ ] Does the API correctly handle valid requests?
+      * [ ] Does the API correctly reject invalid requests? (e.g. Wrong parameters, high frequency request, and etc.)
+    * [ ] Websocket API test
+    * [ ] Redis async MQ API test
+* [ ] System Integration Test
+  * [ ] Function test: Does the system work well as a whole for typical usecases
+  * [ ] Pressure test: Does the system endures pressure and function normally under heavy load?
+* [ ] User Acceptance Test
+  * [ ] Does user can work with the system properly
+  * [ ] Does users interaction go well?
+  * [ ] Does users feel comfortable using the system?
 
 **Deployment Phase** : The deployment phase marked a significant milestone in the project. The production environment was configured with multiple instances of the backend service, Neo4j, and Redis, all managed by Kubernetes. Nginx was employed as a load balancer to ensure equitable distribution of requests across backend instances.
 
+* [ ] Frontend Deployment
+* [ ] LB Deployment
+* [ ] Backend Deployment
+* [ ] Redis Deployment
+* [ ] Neo4j Deployment
+* [ ] Monitoring
+  * [ ] Prometheus
+  * [ ] Grafana
+
 **Post-Deployment** : Subsequent to deployment, a monitoring system was established using Prometheus and Grafana to track the system's performance and availability. A procedure for handling user feedback and system updates was also instituted. The system has demonstrated consistent performance and has been well-received by users.
 
+* [ ] Going online and receive feedbacks
+
+
 **Reflection** : In retrospect, the project has been a successful endeavor, resulting in the creation of a robust, high-performance system that effectively meets user requirements. The experience has provided valuable insights into working with graph databases, designing distributed systems, and managing high-availability deployments. The team looks forward to further improving the system and tackling new challenges in the future.
+
+* [ ] Write and share retrospect on this project
