@@ -275,11 +275,11 @@ CREATE INDEX FOR (i:Item) ON (i.name)
     * [X] Supports SP500 & DOW30 global chart
     * [X] Support node expansion given company and relationship type
     * [X] Support node expansion by number of nodes and number of layers
-  * [ ] Websocket based API
-  * [ ] Redis MQ based API
+  * [ ] Websocket based API: services can send command and pull data from the websocket api
+  * [ ] Redis MQ based API: services can send command and pull data from redis mq
 * [ ] Data preparation and migration
-  * [ ] Neo4j Graph schema building
-  * [ ] Data migration
+  * [ ] Neo4j Graph schema building: defined schema and indexes for the competition graph
+  * [ ] Data migration: load all json data to neo4j
 
 **Testing Phase** : A comprehensive testing strategy was implemented, encompassing unit tests, integration tests, and load tests. Performance bottlenecks identified during load testing were addressed through query optimization and enhanced caching.
 
@@ -291,16 +291,16 @@ CREATE INDEX FOR (i:Item) ON (i.name)
     * [ ] Model layer operations test (do methods in the model work properly?)
   * [ ] Infrastructure layer tests
     * [ ] Data loading (no writing in our use cases for now)
-    * [ ] Redis caching test
-    * [ ] Redis MQ test
+    * [ ] Redis caching test: Cached data should be written into and read from redis
+    * [ ] Redis MQ test: Data should be requested and sent from redis properly
   * [ ] Service layer tests
     * [ ] Does the service layer correctly implements use cases?
   * [ ] API layer tests
     * [ ] RESTful API test
       * [ ] Does the API correctly handle valid requests?
       * [ ] Does the API correctly reject invalid requests? (e.g. Wrong parameters, high frequency request, and etc.)
-    * [ ] Websocket API test
-    * [ ] Redis async MQ API test
+    * [ ] Websocket API test: services can send command and pull data from the websocket api
+    * [ ] Redis async MQ API test: services can send command and pull data from redis mq
 * [ ] System Integration Test
   * [ ] Function test: Does the system work well as a whole for typical usecases
   * [ ] Pressure test: Does the system endures pressure and function normally under heavy load?
@@ -312,11 +312,16 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 **Deployment Phase** : The deployment phase marked a significant milestone in the project. The production environment was configured with multiple instances of the backend service, Neo4j, and Redis, all managed by Kubernetes. Nginx was employed as a load balancer to ensure equitable distribution of requests across backend instances.
 
 * [ ] Frontend Deployment
+  * [ ] The finished version should be deployed on at least one server instance
 * [ ] LB Deployment
+  * [ ] The LB should be online and proxy requests to proper frontend resources and backend services
 * [ ] Backend Deployment
+  * [ ] The backend service should be deployed on at least one server instance
 * [ ] Redis Deployment
+  * [ ] One redis instance should be deployed
 * [ ] Neo4j Deployment
-* [ ] Monitoring
+  * [ ] Expect 2 Neo4j DB to be deployed. (Two replicas to balance load)
+* [ ] Monitoring (Optional, if we have monitoring already.)
   * [ ] Prometheus
   * [ ] Grafana
 
