@@ -147,9 +147,11 @@ Use a middleware such as Eureka for service registration and configuration manag
 - **Error Rates:** The number of failed requests over total requests.
 
 
-### Cache Key Design
+### Cache Key Design (Optional)
 
 Redis is used as the caching system between the backend and its consumers.
+
+For simplicity, a in-memory cache layer can be adopted.
 
 Data will be cached to redis on the first update, and get refreshed after 5 minutes.
 
