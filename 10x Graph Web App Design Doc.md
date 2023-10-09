@@ -30,20 +30,41 @@
 
 * **Performance:**  The service should be able to handle frequent requests from other services without performance degradation. Key performance metrics include:
 
-  * **Response Time** : The average response time for API requests should be under 200 milliseconds under normal load.
-  * **Throughput** : The service should be able to handle at least 10k requests per second under peak load.
-  * **Special Requirement:** The service should be able to handle a sudden surge of large concurrent requests, and should not fail to response for 99.99% of the time.
+  * **Throughput** : The service should be able to handle requests containing about 2k nodes (roughly equal to the sp500 dataset, around 270kb, which is roughly around 120 bytes per node).
+    * How to achieve this:
+      * the service should transmit gzipped data by default
+      * the client should request the batch data api
+      * the service could use some in-memory cache to increase response time
 * **Scalability** : The service should be scalable to handle increasing data volume and request load. Key scalability metrics include:
 
-  * **Load Scalability** : The service should maintain its performance characteristics even when the number of simultaneous users or requests doubles.
-  * **Data Scalability** : The service should be able to handle a 10x increase in the number of public companies and relationships without a significant increase in response time.
+  * **Load Scalability** : The service should auto scale when handling large amount of requests
+    * How to achieve this: [use K8s autoscaler ](https://www.kubecost.com/kubernetes-autoscaling/kubernetes-cluster-autoscaler/)or [use multiple workers](https://fastapi.tiangolo.com/deployment/server-workers/) with load balancer such as nginx
 * **Availability:**  The service should be highly available to ensure uninterrupted service to users. Key availability metrics include:
 
-  * **Uptime** : The service should aim for an uptime of 99.99% ("Four Nines"), which allows for approximately 52.56 minutes of downtime per year, not including planned maintenance.
   * **Failover** : In case of a system failure, the service should be able to automatically failover to a backup system within minutes.
-* **Security (not included in the scope of this document, require a common security service)**
+    * How to achieve this:[ Liveness Probe](https://blog.csdn.net/dkfajsldfsdfsd/article/details/81086633) or [use systemctl](https://ma.ttias.be/auto-restart-crashed-service-systemd/) （simpler）
 
 ## Web API
+
+#### For Machine Learning Services
+
+The service will expose a RESTful API suitable for batch data request
+
+How to consume it: [here](https://requests.readthedocs.io/en/latest/user/quickstart/#binary-response-content)
+
+1. POST /graph-request
+   1. returns a zipped graph data starting with a center node
+   2. params
+      1. center_node: str
+      2. relationship_type: `'comp' | 'product' | 'unknown'`
+         * `'comp'`: competition
+         * `'product'`: represents products of a company
+         * `'unknown'`: other relationships
+         * `none`: returns all relationships
+      3. n_layers: int
+         1. how many layers to expand
+
+#### For Graph Visualizer
 
 The service will expose a RESTful API with the following endpoints:
 
@@ -66,25 +87,6 @@ The service will expose a RESTful API with the following endpoints:
 
 ![1687008056491](image/10xGraphWebAppDesignDoc/1687008056491.png)
 
-The service will also provide an bidirectional websocket API. This api is primarily consumed by other services like AI training services. The frontend will not interact with this api.
-
-If you are not familiar with websocket, here are some resources:
-
-1. [MDN Websocket Documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications)
-2. [FastAPI Websocket Server](https://fastapi.tiangolo.com/zh/advanced/websockets/)
-3. [Python Websocket Library](https://websockets.readthedocs.io/en/stable/)
-
-API: /ws/company-relation
-
-Body:
-
-`{'company_name': None|str, 'relationship_type': 'comp' | 'prod' | 'unknown' | none }`
-
-Returns
-
-1. graph
-2. `nodes: List[{ id: int, name: str }]`
-3. `links: List[{ id: int, category: 'competition' | 'product' | 'unknown', source: int, target: int }]`
 
 ## UI Design
 
@@ -131,6 +133,20 @@ Initially, the database could be deployed as a single node for the sake of simpl
 
 To ensure the high availability of the service, a robust monitoring and alerting system will be implemented. This system will continuously monitor the health of the servers and the database, and send alerts in case of any issues. This allows for quick detection and resolution of any problems, minimizing downtime.
 
+Use a middleware such as Eureka for service registration and configuration management.
+
+#### Metrics to monitor
+
+- CPU usage
+- Disk I/O
+- Network I/O
+- Node status
+- Cluster health
+- Uptime
+- Downtime
+- **Error Rates:** The number of failed requests over total requests.
+
+
 ### Cache Key Design
 
 Redis is used as the caching system between the backend and its consumers.
@@ -172,7 +188,6 @@ Client services will subscribe to `company_relationship` channel to receive the 
 ```
 SUBSCRIBE relationship_query
 ```
-
 
 ## DB Design
 
@@ -243,25 +258,6 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 
 ## Implementation Story
 
-**Initiation** : The project was conceived with the objective of developing a service to facilitate the querying and visualization of relationships between public companies. The team embarked on a comprehensive study of the requirements and initiated the planning process.
-
-* [X] Team building
-* [X] Requirement Research
-
-  * [X] Functional requirement
-  * [X] Non-functional requirement
-* [X] Project Feasibility Study
-
-**Design Phase** : The decision to utilize Neo4j as the primary database was made in light of its superior capabilities for handling graph data. The requirement for a high-availability, low-latency system necessitated the design of a distributed architecture. This architecture incorporated multiple instances of the backend service and Neo4j, complemented by Redis for caching and Nginx for load balancing.
-
-* [X] Design Documentation Drafting
-* [X] Architecture Design
-  * [X] Architecture selection
-  * [X] Database selection
-  * [X] Cache system selection
-* [X] Frontend Design
-* [X] Backend Design
-
 **Development Phase** : The development phase was characterized by rigorous coding activity. The team implemented the database schema in Neo4j, developed the backend service using Python, and designed a frontend interface for visualizing company relationships. The complexity of graph queries in Neo4j presented a significant challenge, which was overcome through meticulous query design and effective utilization of Neo4j's features.
 
 * [ ] Frontend Development
@@ -275,8 +271,7 @@ CREATE INDEX FOR (i:Item) ON (i.name)
     * [X] Supports SP500 & DOW30 global chart
     * [X] Support node expansion given company and relationship type
     * [X] Support node expansion by number of nodes and number of layers
-  * [ ] Websocket based API: services can send command and pull data from the websocket api
-  * [ ] Redis MQ based API: services can send command and pull data from redis mq
+    * [ ] Support for gzipped batch request API
 * [ ] Data preparation and migration
   * [ ] Neo4j Graph schema building: defined schema and indexes for the competition graph
   * [ ] Data migration: load all json data to neo4j
@@ -284,26 +279,23 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 **Testing Phase** : A comprehensive testing strategy was implemented, encompassing unit tests, integration tests, and load tests. Performance bottlenecks identified during load testing were addressed through query optimization and enhanced caching.
 
 * [ ] Test case development
-* [ ] Unit testing
-  * [ ] Graph model layer tests
-    * [ ] Basic data read/write
-    * [ ] Data validation (Do the model correctly validate data)
-    * [ ] Model layer operations test (do methods in the model work properly?)
-  * [ ] Infrastructure layer tests
-    * [ ] Data loading (no writing in our use cases for now)
-    * [ ] Redis caching test: Cached data should be written into and read from redis
-    * [ ] Redis MQ test: Data should be requested and sent from redis properly
-  * [ ] Service layer tests
-    * [ ] Does the service layer correctly implements use cases?
-  * [ ] API layer tests
-    * [ ] RESTful API test
-      * [ ] Does the API correctly handle valid requests?
-      * [ ] Does the API correctly reject invalid requests? (e.g. Wrong parameters, high frequency request, and etc.)
-    * [ ] Websocket API test: services can send command and pull data from the websocket api
-    * [ ] Redis async MQ API test: services can send command and pull data from redis mq
+  * [ ] Service modules should be unit
 * [ ] System Integration Test
-  * [ ] Function test: Does the system work well as a whole for typical usecases
+  * [ ] Function test
+    * [ ] Visualizer UI test
+
+      * [ ] Can DOW30 graph be displayed?
+      * [ ] Can SP500 graph be displayed?
+      * [ ] Can user choose the amount of nodes to expand?
+      * [ ] Can users choose a company as the center node and expand up to n layers?
+    * [ ] Backend test
+
+      * [ ] Can the service returns full dow30 graph within 5 second?
+      * [ ] Can the service returns full sp500 graph within 5 second?
   * [ ] Pressure test: Does the system endures pressure and function normally under heavy load?
+    * [ ] Can the service handles request of more than 1k nodes without overtime?
+    * [ ] Can the service handles request of more than 5k nodes without overtime?
+    * [ ] Can the service handles request of more than 10k nodes without overtime?
 * [ ] User Acceptance Test
   * [ ] Does user can work with the system properly
   * [ ] Does users interaction go well?
@@ -328,7 +320,6 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 **Post-Deployment** : Subsequent to deployment, a monitoring system was established using Prometheus and Grafana to track the system's performance and availability. A procedure for handling user feedback and system updates was also instituted. The system has demonstrated consistent performance and has been well-received by users.
 
 * [ ] Going online and receive feedbacks
-
 
 **Reflection** : In retrospect, the project has been a successful endeavor, resulting in the creation of a robust, high-performance system that effectively meets user requirements. The experience has provided valuable insights into working with graph databases, designing distributed systems, and managing high-availability deployments. The team looks forward to further improving the system and tackling new challenges in the future.
 
