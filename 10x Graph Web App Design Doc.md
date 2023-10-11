@@ -38,11 +38,11 @@
 * **Scalability** : The service should be scalable to handle increasing data volume and request load. Key scalability metrics include:
 
   * **Load Scalability** : The service should auto scale when handling large amount of requests
-    * How to achieve this: [use K8s autoscaler ](https://www.kubecost.com/kubernetes-autoscaling/kubernetes-cluster-autoscaler/)or [use multiple workers](https://fastapi.tiangolo.com/deployment/server-workers/) with load balancer such as nginx
+    * How to achieve this: [use K8s autoscaler ](https://www.kubecost.com/kubernetes-autoscaling/kubernetes-cluster-autoscaler/)
 * **Availability:**  The service should be highly available to ensure uninterrupted service to users. Key availability metrics include:
 
   * **Failover** : In case of a system failure, the service should be able to automatically failover to a backup system within minutes.
-    * How to achieve this:[ Liveness Probe](https://blog.csdn.net/dkfajsldfsdfsd/article/details/81086633) or [use systemctl](https://ma.ttias.be/auto-restart-crashed-service-systemd/) （simpler）
+    * How to achieve this:[ Liveness Probe](https://blog.csdn.net/dkfajsldfsdfsd/article/details/81086633)
 
 ## Web API
 
@@ -87,7 +87,6 @@ The service will expose a RESTful API with the following endpoints:
 
 ![1687008056491](image/10xGraphWebAppDesignDoc/1687008056491.png)
 
-
 ## UI Design
 
 (For reference only. May not represent the final product.)
@@ -125,15 +124,13 @@ The backend service will be deployed using Docker, and orchestrated using Kubern
 
 #### Database Deployment
 
-Initially, the database could be deployed as a single node for the sake of simplicity. Then it could scale to multiple replicas upon higher request demands. In that case, the graph database will be set up as a cluster with multiple replicas. This ensures that even if one database instance goes down, the others can continue to serve data.
-
-1. **Replication** : The database will be replicated across multiple instances. This ensures high availability as even if one instance goes down, the others can continue to serve data. There will be one core instance and two read replica.
+The database could be deployed as a single node for the sake of simplicity. Replication will be considered if the data size is large enough.
 
 ### Monitoring and Alerting
 
 To ensure the high availability of the service, a robust monitoring and alerting system will be implemented. This system will continuously monitor the health of the servers and the database, and send alerts in case of any issues. This allows for quick detection and resolution of any problems, minimizing downtime.
 
-Use a middleware such as Eureka for service registration and configuration management.
+The system will be deployed with K8s + Prometheus.
 
 #### Metrics to monitor
 
@@ -145,7 +142,6 @@ Use a middleware such as Eureka for service registration and configuration manag
 - Uptime
 - Downtime
 - **Error Rates:** The number of failed requests over total requests.
-
 
 ### Cache Key Design (Optional)
 
@@ -246,7 +242,7 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 
 1. **Data Availability** : The system assumes that the data about companies and their relationships is available and can be obtained in a structured format that can be imported into Neo4j.
 2. **Data Quality** : The system assumes that the data is accurate and up-to-date. If the data is not reliable, the results provided by the system will also be unreliable.
-3. **User Load** : The system assumes that the load will be manageable with the proposed architecture. If the number of users or the rate of requests is significantly higher than expected, the system might need to be scaled up or ou
+3. **User Load** : The system assumes that the load will be manageable with the proposed architecture. If the number of users or the rate of requests is significantly higher than expected, the system might need to be scaled up.
 4. **User Behavior** : The system assumes that users will interact with the system in certain ways (e.g., by querying for specific companies, by exploring the graph visualization). If users interact with the system in unexpected ways, it might affect the performance or usability of the system.
 
 #### **Key Trade-offs**
@@ -281,20 +277,22 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 **Testing Phase** : A comprehensive testing strategy was implemented, encompassing unit tests, integration tests, and load tests. Performance bottlenecks identified during load testing were addressed through query optimization and enhanced caching.
 
 * [ ] Test case development
-  * [ ] Service modules should be unit
+  * [ ] Service modules should be unit tested
 * [ ] System Integration Test
   * [ ] Function test
+
+    * [ ] Backend test
+
+      * [ ] Can the service returns full dow30 graph within 5 second?
+      * [ ] Can the service returns full sp500 graph within 5 second?
     * [ ] Visualizer UI test
 
       * [ ] Can DOW30 graph be displayed?
       * [ ] Can SP500 graph be displayed?
       * [ ] Can user choose the amount of nodes to expand?
       * [ ] Can users choose a company as the center node and expand up to n layers?
-    * [ ] Backend test
-
-      * [ ] Can the service returns full dow30 graph within 5 second?
-      * [ ] Can the service returns full sp500 graph within 5 second?
   * [ ] Pressure test: Does the system endures pressure and function normally under heavy load?
+
     * [ ] Can the service handles request of more than 1k nodes without overtime?
     * [ ] Can the service handles request of more than 5k nodes without overtime?
     * [ ] Can the service handles request of more than 10k nodes without overtime?
@@ -314,10 +312,9 @@ CREATE INDEX FOR (i:Item) ON (i.name)
 * [ ] Redis Deployment
   * [ ] One redis instance should be deployed
 * [ ] Neo4j Deployment
-  * [ ] Expect 2 Neo4j DB to be deployed. (Two replicas to balance load)
-* [ ] Monitoring (Optional, if we have monitoring already.)
+  * [ ] Expect 1 Neo4j DB to be deployed.
+* [ ] Monitoring
   * [ ] Prometheus
-  * [ ] Grafana
 
 **Post-Deployment** : Subsequent to deployment, a monitoring system was established using Prometheus and Grafana to track the system's performance and availability. A procedure for handling user feedback and system updates was also instituted. The system has demonstrated consistent performance and has been well-received by users.
 
