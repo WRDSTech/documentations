@@ -72,8 +72,7 @@ This document aims to analyze the platform and give a tentative breakdown of eac
 
 #### Representative User-Journey
 
-A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITDA in order to assess stocks in terms of debt repayability, profitability, and valuation. The user want to exclude stocks with market cap under $100 million. He or she select "market cap" as the filter condition, select the condition to be "larger or equal to", and enter $100 million. Then the user select "Quick Ratio, ROE and EV/EBITDA" as ranking factors. Equal weights are given to all factors. All factors are set to rank in descending order. When the user submit the request, the ranking will be calculated by the weighted sum of all ranking scores of the chosen factors. Then the user can view the result includingh tickers, names, ranking scores, and factor scores. The user can also export the result as excel. 
-
+A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITDA in order to assess stocks in terms of debt repayability, profitability, and valuation. The user want to exclude stocks with market cap under $100 million. He or she select "market cap" as the filter condition, select the condition to be "larger or equal to", and enter $100 million. Then the user select "Quick Ratio, ROE and EV/EBITDA" as ranking factors. Equal weights are given to all factors. All factors are set to rank in descending order. When the user submit the request, the ranking will be calculated by the weighted sum of all ranking scores of the chosen factors. Then the user can view the result includingh tickers, names, ranking scores, and factor scores. The user can also export the result as excel.
 
 #### Stock Ranking Factors
 
@@ -132,19 +131,19 @@ A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITD
 ### Non-Functional Requirement
 
 * The system should be adaptable and compatible with multiple existing strategies/data processing workflow.
-
 * It should be scalable, such that a massive amount of data could be injected and processed.
 * The platform should be reliable, client should have no problem accessing the ranking result.
-
 
 #### Performance
 
 * For ranking queries, we have around 8000 companies' data and 2 to 150 combined factors in general. We’d like to target 1,000 query requests per second (QPS) in the first stage.
-
 * When requests arrive, we aim to get it around 100ms, either by smart computation or caching.
 
-
 ## System Architecture
+
+![1701100165851](image/StockRankingQuerySystemHighLevelDesign/1701100165851.png)
+
+
 
 ## Database Design
 
