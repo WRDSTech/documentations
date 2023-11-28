@@ -144,25 +144,82 @@ A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITD
 
 ## System Architecture
 
-![1701100165851](image/StockRankingQuerySystemHighLevelDesign/1701100165851.png)
+### High-Level Overview
+
+![1701180869342](image/StockRankingQuerySystemHighLevelDesign/1701180869342.png)
+
+
+The Stock Ranking Query System consists of four microservices:
+
+* Factor Manager
+* Stock Ranker
+* Stock Pool Manager
+* Portfolio Manage
+
+**Factor Manager:**
+
+- Manages a dynamic catalog of stock ranking and filtering factors.
+- Allows users to create custom factors using a formula editor that supports arithmetic operations and references to other factors.
+- Provides a user interface for browsing and searching available factors.
+- Ensures the integrity of factor definitions and dependencies.
+
+**Stock Ranker:**
+
+- Receives queries from users to rank stocks based on selected factors.
+- Utilizes a high-performance computation engine to process large volumes of stock data.
+- Offers various ranking algorithms, including weighted scoring and machine learning models.
+- Supports real-time and batch processing modes for different use cases.
+
+**Stock Pool Manager:**
+
+- Curates and manages a collection of stock pools, such as blue-chip stocks, tech sector stocks, or value stocks.
+- Allows users to define their own stock pools based on specific criteria or filters.
+- Integrates with external data sources to update stock pools based on market changes.
+- Provides APIs for other system components to retrieve and subscribe to stock pool updates.
+
+**Portfolio Analyzer:**
+
+- Tracks the historical and real-time performance of stock rankings and user portfolios.
+- Offers analytical tools to compare the performance against benchmarks or indices.
+- Allows users to set up alerts based on portfolio performance metrics.
+- Generates detailed reports with insights into portfolio diversification, risk, and returns.
+
+**Data Digestion System:**
+
+- Acts as a backbone for the system, ingesting and normalizing data from various stock exchanges and financial data providers.
+- Ensures data quality and consistency through validation, cleaning, and transformation processes.
+- Provides a scalable storage solution to handle the vast amounts of incoming financial data.
+- Facilitates data accessibility for the microservices through a well-defined API.
+
+**Infrastructure (Infra):**
+
+- Built on a robust cloud infrastructure to ensure scalability, reliability, and security.
+- Implements containerization and orchestration for microservices deployment and management.
+- Employs a combination of relational and NoSQL databases optimized for different data access patterns.
+- Features a comprehensive monitoring and logging system to track system health and performance.
+
+
+### Module Design
+
+![1701181323446](image/StockRankingQuerySystemHighLevelDesign/1701181323446.png)
+
+
+
+
 
 ## Database Design
 
 The query system chooses **PostgreSQL** and its time-series supporting variant **TimescaleDB** as primary databases. Trade-offs and reasons behind this decision will be discussed in the database trade-off section.
 
-
 ### Table Design
 
 how to design tables
-
 
 ### Trade-offs
 
 Compare Postgres / TimescaleDB with other databases
 
-
 1. [Vanilla Postgres vs TimeScaleDB](https://medium.com/timescale/timescaledb-vs-6a696248104e)
-
 
 ## Stock Ranking Factors Specification
 
