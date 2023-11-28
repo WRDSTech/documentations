@@ -70,6 +70,10 @@ This document aims to analyze the platform and give a tentative breakdown of eac
     * ranking score of factor 1
     * ranking score of factor n (if any)
 
+#### Factor Customization (Advanced Requirement)
+
+* Users can customize their own factors based on system built-in factors and data
+
 #### Representative User-Journey
 
 A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITDA in order to assess stocks in terms of debt repayability, profitability, and valuation. The user want to exclude stocks with market cap under $100 million. He or she select "market cap" as the filter condition, select the condition to be "larger or equal to", and enter $100 million. Then the user select "Quick Ratio, ROE and EV/EBITDA" as ranking factors. Equal weights are given to all factors. All factors are set to rank in descending order. When the user submit the request, the ranking will be calculated by the weighted sum of all ranking scores of the chosen factors. Then the user can view the result includingh tickers, names, ranking scores, and factor scores. The user can also export the result as excel.
@@ -116,11 +120,10 @@ A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITD
   * Earning per share
   * dividend per share
   * Free Cash Flow per share
-  * 
 
 ##### Trade
 
-1. Volume (1 day, 5 day, 20 day)
+1. Price and Volume (OHLCV)
 2. MA (1 day, 5 day, 20 day)
 3. Momentum (1 day, 5 day, 20 day)
 4. turnover rate (1 day, 5 day, 20 day)
@@ -143,13 +146,23 @@ A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITD
 
 ![1701100165851](image/StockRankingQuerySystemHighLevelDesign/1701100165851.png)
 
-
-
 ## Database Design
 
-Specify the choice of database and how data should be modelled.
+The query system chooses **PostgreSQL** and its time-series supporting variant **TimescaleDB** as primary databases. Trade-offs and reasons behind this decision will be discussed in the database trade-off section.
+
 
 ### Table Design
+
+how to design tables
+
+
+### Trade-offs
+
+Compare Postgres / TimescaleDB with other databases
+
+
+1. [Vanilla Postgres vs TimeScaleDB](https://medium.com/timescale/timescaledb-vs-6a696248104e)
+
 
 ## Stock Ranking Factors Specification
 
