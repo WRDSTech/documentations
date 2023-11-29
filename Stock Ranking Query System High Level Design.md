@@ -72,7 +72,22 @@ This document aims to analyze the platform and give a tentative breakdown of eac
 
 #### Factor Customization (Advanced Requirement)
 
+This requirement is planned to be implemented in multiple stages as it is quite complicated.
+
 * Users can customize their own factors based on system built-in factors and data
+  * Stage 0: Proof of concept, internal configuration only
+    * provide a internal interface to manage factors
+    * Admin can write computation script (python / sql) to generate factors
+  * Stage I: Only support factor building with basic arithmetic operations
+    * Add, Subtract, Multiply, Division
+    * If factors do not have the same time period, all of them must be downscaled to the one with the lowest frequency
+  * Stage II: Support predefined functions
+    * Such as:
+      * Mean
+      * Max
+      * Min
+      * Zscore
+      * Standardize
 
 #### Representative User-Journey
 
@@ -148,7 +163,6 @@ A user wants to get the top 20 stocks based on the Quick Ratio, ROE and EV/EBITD
 
 ![1701180869342](image/StockRankingQuerySystemHighLevelDesign/1701180869342.png)
 
-
 The Stock Ranking Query System consists of four microservices:
 
 * Factor Manager
@@ -198,11 +212,76 @@ The Stock Ranking Query System consists of four microservices:
 - Employs a combination of relational and NoSQL databases optimized for different data access patterns.
 - Features a comprehensive monitoring and logging system to track system health and performance.
 
-
-### Module Design
+### System Component Design
 
 ![1701181323446](image/StockRankingQuerySystemHighLevelDesign/1701181323446.png)
 
+
+**Stock Ranking Web App:**
+
+- **Factor Panel:** Allows users to browse, select, and manage the factors used in stock ranking. Users can create custom factors by defining formulas or expressions.
+- **Rank Condition Selector:** Enables users to set conditions and criteria for stock ranking, like thresholds or specific factor weightings.
+- **Stock Pool Selector:** Provides a user interface for selecting predefined pools of stocks or for creating custom pools based on user-defined criteria.
+- **Ranking Panel:** Displays the results of stock rankings based on selected factors and conditions. Users can sort, filter, and analyze the ranking results.
+- **Portfolio Tracker:** Tracks the performance of user portfolios over time and provides insights into gains, losses, and other relevant metrics.
+- **Account Management:** Manages user accounts, including authentication, authorization, preferences, and settings.
+
+**API Gateway:**
+
+- Serves as an entry point for the web application, routing requests to the appropriate services in the application layer and aggregating the results for the web app.
+
+**Application Layer:**
+
+- **Factor Manager:** Manages the lifecycle of ranking factors, including creation, update, and deletion of factor definitions.
+- **Stock Ranker:** Processes ranking requests by applying factors and conditions to generate a ranked list of stocks.
+- **Stock Pool Manager:** Manages the different pools of stocks, including their creation, update, and deletion based on defined criteria.
+- **Portfolio Manager:** Handles operations related to portfolio management, including tracking performance and managing portfolio compositions.
+
+**Domains:**
+
+- **Factor Domain:** Contains the business logic related to ranking factors and their management.
+  - Aggregate:
+    - FactorSet
+      - Represents the whole set of factors exposed to users.
+        - Factors in quantitative finance are variables that capture specific sources of risk and return in investment portfolios. They are used to explain performance and to design strategies that capitalize on these risk-return relationships.
+      - supported operations
+        - create new factor
+        - view factors
+        - update factors
+        - delete factors
+        - factor state management
+          - enable update
+          - pause update
+  - Domain Objects
+    - Factor
+  - Value Objects
+    - FactorValue
+    - FactorState
+- **Ranker Domain:** Encapsulates the logic for the ranking process, including the application of algorithms and factor weightings.
+- **Stock Domain:** Represents the domain logic for managing stock-related information, such as stock details, price history, and metadata.
+- **Portfolio Domain:** Governs the rules and operations related to portfolio management, performance tracking, and analytics.
+
+**Repositories:**
+
+- **Factor Repository:** Responsible for persisting factor data and providing access to factor entities.
+- **Ranker Repository:** Handles persistence and retrieval of ranking computations and results.
+- **Stock Repository:** Manages the storage and retrieval of stock data, including real-time and historical data.
+- **Portfolio Repository:** Maintains portfolio data, including holdings, transaction history, and performance metrics.
+
+**Infrastructure:**
+
+- **Time Series DB:** Stores and manages time-series data like stock prices, volume, and other temporal data.
+- **Relational DB:** Manages structured data, such as user information, factor definitions, and portfolio compositions.
+- **Redis:** Provides in-memory data storage for fast access to frequently used data like session states, cache, and temporary computations.
+- **RabbitMQ:** Handles message queuing for asynchronous processing and communication between different services and components.
+
+**Query System External Interface Manager:**
+
+- Manages the interfaces between the application and external query systems, ensuring the seamless flow of data and requests.
+
+**Stock Ranking Data Digestion System:**
+
+- Processes and normalizes raw stock data from various external sources, preparing it for consumption by the application's services.
 
 
 
@@ -230,3 +309,6 @@ Specify what factors should be supported and how to retrieve and calculate them.
 ## Implementation Story
 
 ## References and Additional Information
+
+
+1. [Adding TimescaleDB to Postgres](https://bobcares.com/blog/add-timescale-to-postgresql/)
